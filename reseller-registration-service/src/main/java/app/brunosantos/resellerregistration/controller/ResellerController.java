@@ -1,11 +1,10 @@
 package app.brunosantos.resellerregistration.controller;
 
+import app.brunosantos.resellerregistration.dto.ResellerDTO;
 import app.brunosantos.resellerregistration.model.Reseller;
-import app.brunosantos.resellerregistration.controller.request.ResellerRequest;
 import app.brunosantos.resellerregistration.mapper.ResellerMapper;
 import app.brunosantos.resellerregistration.service.ResellerService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,17 +27,24 @@ public class ResellerController {
     private final ResellerService resellerService;
     private final ResellerMapper resellerMapper;
 
-    @Autowired
     public ResellerController(ResellerService resellerService, ResellerMapper resellerMapper) {
         this.resellerService = resellerService;
         this.resellerMapper = resellerMapper;
     }
 
     @PostMapping
-    public ResponseEntity<Reseller> registerReseller(@Valid @RequestBody ResellerRequest resellerRequest) {
-        Reseller reseller = resellerMapper.toReseller(resellerRequest);
-        Reseller createdReseller = resellerService.registerReseller(reseller);
-        return new ResponseEntity<>(createdReseller, HttpStatus.CREATED);
+    public ResponseEntity<Reseller> createReseller(@Valid @RequestBody ResellerDTO resellerDTO) {
+        Reseller reseller = resellerMapper.toEntity(resellerDTO);
+        return new ResponseEntity<>(resellerService.registerReseller(reseller), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Reseller> updateReseller(
+        @PathVariable Long id,
+        @Valid @RequestBody ResellerDTO resellerDTO
+    ) {
+        Reseller reseller = resellerMapper.toEntity(resellerDTO);
+        return ResponseEntity.ok(resellerService.updateReseller(id, reseller));
     }
 
     @GetMapping
@@ -51,13 +57,6 @@ public class ResellerController {
         Optional<Reseller> reseller = resellerService.getResellerById(id);
         return reseller.map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Reseller> updateReseller(@PathVariable Long id, @Valid @RequestBody ResellerRequest resellerRequest) {
-        Reseller reseller = resellerMapper.toReseller(resellerRequest);
-        Reseller updatedReseller = resellerService.updateReseller(id, reseller);
-        return ResponseEntity.ok(updatedReseller);
     }
 
     @DeleteMapping("/{id}")

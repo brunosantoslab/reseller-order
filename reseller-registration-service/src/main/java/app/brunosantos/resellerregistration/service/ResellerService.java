@@ -1,11 +1,11 @@
 package app.brunosantos.resellerregistration.service;
 
+import app.brunosantos.resellerregistration.exception.ResourceNotFoundException;
 import app.brunosantos.resellerregistration.model.Reseller;
 import app.brunosantos.resellerregistration.repository.ResellerRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,16 +18,20 @@ import java.util.Optional;
  * @since 2025-02-24
  */
 @Service
+@Transactional
 public class ResellerService {
 
     private final ResellerRepository resellerRepository;
 
-    @Autowired
     public ResellerService(ResellerRepository resellerRepository) {
         this.resellerRepository = resellerRepository;
     }
 
-    public Reseller registerReseller(@Valid Reseller reseller) {
+    public Reseller registerReseller(Reseller reseller) {
+
+        if (reseller.getDeliveryAddresses() != null) {
+            reseller.getDeliveryAddresses().forEach(address -> address.setReseller(reseller));
+        }
         return resellerRepository.save(reseller);
     }
 
@@ -39,12 +43,31 @@ public class ResellerService {
         return resellerRepository.findById(id);
     }
 
-    public Reseller updateReseller(Long id, @Valid Reseller reseller) {
-        if (!resellerRepository.existsById(id)) {
-            throw new RuntimeException("Reseller not found");
+    public Reseller updateReseller(Long id, Reseller reseller) {
+        return resellerRepository.findById(id)
+            .map(existing -> {
+                updateEntity(existing, reseller);
+                return resellerRepository.save(existing);
+            })
+            .orElseThrow(() -> new ResourceNotFoundException("Reseller not found with id: " + id));
+    }
+
+    private void updateEntity(Reseller existing, Reseller updated) {
+        existing.setCnpj(updated.getCnpj());
+        existing.setCorporateName(updated.getCorporateName());
+        existing.setTradeName(updated.getTradeName());
+        existing.setEmail(updated.getEmail());
+        existing.setContactNames(updated.getContactNames());
+        existing.setPhoneNumbers(updated.getPhoneNumbers());
+
+        // Atualização segura dos endereços
+        existing.getDeliveryAddresses().clear();
+        if (updated.getDeliveryAddresses() != null) {
+            updated.getDeliveryAddresses().forEach(address -> {
+                address.setReseller(existing);
+                existing.getDeliveryAddresses().add(address);
+            });
         }
-        reseller.setId(id);
-        return resellerRepository.save(reseller);
     }
 
     public void deleteReseller(Long id) {
