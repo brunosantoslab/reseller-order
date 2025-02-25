@@ -1,0 +1,35 @@
+resilience4j:
+  retry:
+    instances:
+      supplierClient:
+        maxAttempts: 3
+        waitDuration: 5s
+        retryExceptions:
+          - java.lang.RuntimeException
+      resellerClient:
+        maxAttempts: 3
+        waitDuration: 500ms
+        retryExceptions:
+          - java.lang.RuntimeException
+  circuitbreaker:
+    instances:
+      supplierClient:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        slidingWindowSize: 10
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+      resellerClient:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+
+feign:
+  circuitbreaker:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
